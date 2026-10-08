@@ -223,6 +223,22 @@ class BookingWorkflowTest {
     }
 
     @Test
+    void recurringSubmitSkipsAWeekThatStartsWhenAnotherBookingEnds() {
+        LocalDateTime secondMon8am = LocalDateTime.of(2026, 10, 12, 8, 0);
+        LocalDateTime secondMon9am = LocalDateTime.of(2026, 10, 12, 9, 0);
+        workflow.submit(BookingRequest.regular("C-200", "m-2", secondMon8am, secondMon9am, 4));
+
+        BookingOutcome outcome = workflow.submit(
+                BookingRequest.recurring("C-200", "m-1", MON_9AM, MON_10AM, 3, 6));
+
+        assertTrue(outcome.isAccepted());
+        assertEquals(2, outcome.getBooked().size());
+        assertEquals(1, outcome.getSkipped().size());
+        assertEquals(secondMon9am, outcome.getSkipped().get(0).start());
+        assertEquals(3, store.activeInRoom("C-200").size());
+    }
+
+    @Test
     void submitRejectsAnUnknownRoom() {
         BookingOutcome outcome = workflow.submit(
                 BookingRequest.regular("X-999", "m-1", MON_9AM, MON_10AM, 2));
